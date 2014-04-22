@@ -1,12 +1,18 @@
 #include "print_solver.h"
 #include "printer_config.h"
 #include "print_planner.h"
+
 #include <stdio.h>
+#include <unistd.h>
 #include <fstream>
+#include <thread>
+
+using namespace std;
 
 PrinterConfig config;
+PrintPlanner* planner;
 
-std::ofstream fileStream;
+ofstream fileStream;
 
 void testSolver() {
   PrintSolver solver(config);
@@ -78,18 +84,54 @@ void testMoveProfile() {
   fileStream.close();
 }
 
+bool doneConsuming = false;
+void consumePrintBlocks() {
+  while(!doneConsuming) {
+    BlockBuffer* buffer = planner->getFrontBuffer();
+    while(!buffer->ready) {
+      printf("Waiting for buffer to be ready\n");
+      sleep(1);
+      // Wait for the buffer to be ready
+    }
+
+    // Fake buffer consumption
+
+    planner->releaseFrontBuffer();
+  }
+}
+
+void testPrintPlanner() {
+  planner = new PrintPlanner(config);
+
+  thread consumeThread = thread(consumePrintBlocks);
+
+  bool ret = planner->queueMove(Vec3(1, 0.5, 0));
+  if(ret) {
+    printf("Move successfully queued\n");
+  } else {
+    printf("Failed to queue move\n");
+  }
+
+  doneConsuming = true;
+  consumeThread.join();
+
+  delete planner;
+}
+
 int main() {
   config.sideLength = 20; // Width of one side
   config.rodLength = 20; // Length of the fixed rods
   config.rodOffset = 2; // Radius of the extruder platform
   config.zMax = 10;
-  config.jerk = 2.0f;
+  config.jerk = 2.5f;
   config.interruptInterval = 1.0f / 9600.0f;
-  config.maxAcceleration = 10.0f;
-  config.maxVelocity = 50.0f;
+  config.maxAcceleration = 5.0f;
+  config.maxVelocity = 25.0f;
+  config.zUnitsPerStep = 0.01f;
+  config.eUnitsPerStep = 0.01f;
   config.setup();
 
-  testMoveProfile();
+  testPrintPlanner();
 
   return 0;
 }

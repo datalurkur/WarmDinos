@@ -14,12 +14,10 @@ public:
 
   bool queueMove(const Vec3& target);
 
-  // A buffer of buffers, oh my!
-  BlockBuffer buffers[RING_BUFFER_LENGTH];
-  // The buffer currently being consumed by the interrupt
-  int frontBufferIndex;
-  // The buffer currently being filled by the planner
-  int backBufferIndex;
+  // Get the front buffer
+  BlockBuffer* getFrontBuffer();
+  // Mark the front buffer as done
+  void releaseFrontBuffer();
 
 private:
   // Mark the current block buffer as ready to be consumed
@@ -28,6 +26,14 @@ private:
   BlockBuffer* getBackBuffer();
 
 private:
+  // A buffer of buffers, oh my!
+  BlockBuffer _buffers[RING_BUFFER_LENGTH];
+
+  // The buffer currently being consumed by the interrupt
+  int _frontBufferIndex;
+  // The buffer currently being filled by the planner
+  int _backBufferIndex;
+
   Vec3 _position;
 
   // Used to track the absolute position of the steppers

@@ -7,15 +7,14 @@ PrintSolver::PrintSolver(const PrinterConfig& config):
   _lSquared = (_rodLength * _rodLength);
 
   float halfSide = _sideLength / 2;
-  float height = halfSide * sqrt(3.0f);
+  float halfHeight = halfSide * sqrt(3.0f);
 
-  _anchors[STEPPER_A] = Vec2(0,0);
-  _anchors[STEPPER_B] = Vec2(_sideLength, 0);
-  _anchors[STEPPER_C] = Vec2(halfSide, height);
+  _anchors[STEPPER_A] = Vec2(-halfSide, -halfHeight);
+  _anchors[STEPPER_B] = Vec2(0.0f, halfHeight);
+  _anchors[STEPPER_C] = Vec2( halfSide, -halfHeight);
 
-  Vec2 center(halfSide, height / 2.0f);
   for(int i = STEPPER_A; i < STEPPER_C; i++) {
-    _offsets[i] = (_anchors[i] - center).normalize() * _rodOffset;
+    _offsets[i] = _anchors[i].normalized() * _rodOffset;
   }
 }
 

@@ -1,14 +1,25 @@
 #include "print_planner.h"
+#include <unistd.h>
 
+// Eventually, we'll do a homing step as part of step, but for now just assume the extruder starts at the center, zeroed
 PrintPlanner::PrintPlanner(const PrinterConfig& config):
-  frontBufferIndex(0), backBufferIndex(0),
-  // Eventually, we'll do a homing step as part of step, but for now just assume the extruder starts at the center, zeroed
-  _position((config.sideLength/2.0f), (config.sideLength/2.0f)*sqrt(3.0f), 0),
+  _frontBufferIndex(0), _backBufferIndex(0), _position(0.0f, 0.0f, 0.0f),
   _solver(config), _config(config)
 {
+  int i;
+
+  _solver.getHeightsAt(_position, _stepperPosition);
+
   // Set initial conditions for buffers to be filled
-  // (Basically, we're faking that this buffer has been "consumed" so that the provider knows to start putting data into it)
-  buffers[backBufferIndex].done = true;
+  // (Basically, we're faking that the buffers have been "consumed" so that the provider knows to start putting data into them)
+  for(i = 0; i < RING_BUFFER_LENGTH; i++) {
+    _buffers[i].done = true;
+  }
+
+  // Reset the stepper counters
+  for(i = STEPPER_A; i <= STEPPER_C; i++) {
+    _stepperProgress[i] = 0.0f;
+  }
 }
 
 bool PrintPlanner::queueMove(const Vec3& target) {
@@ -17,7 +28,7 @@ bool PrintPlanner::queueMove(const Vec3& target) {
   // Prepare the distance between the current location and the target, and normalize a unit vector for determining incremental extruder positions
   Vec3 direction = target - _position;
   float distance = direction.mag();
-  Vec3 unit = direction.normalize();
+  Vec3 unit = direction.normalized();
 
   // Determine the fastest movement profile that this move can use
   int moveProfileIndex;
@@ -66,6 +77,7 @@ bool PrintPlanner::queueMove(const Vec3& target) {
 
     // Iterate our position profile
     ComputeStep(_config, jerkDirection, vars);
+    printf("\t[%i] ", i); vars.debug();
 
     // Using our unit vector, project the new extruder location
     Vec3 newPosition = _position + (unit * vars.d);
@@ -73,16 +85,25 @@ bool PrintPlanner::queueMove(const Vec3& target) {
     // Determine the new location of the steppers
     float heights[NUMBER_OF_AXES];
     _solver.getHeightsAt(newPosition, heights);
-    for(int i = STEPPER_A; i <= STEPPER_C; i++) {
-      _stepperProgress[i] += heights[i] - _stepperPosition[i];
-      if       (_stepperProgress[i] >=  _config.zUnitsPerStep) {
-        backBuffer->blocks[i].step[i]    = true;
-        backBuffer->blocks[i].forward[i] = true;
-      } else if(_stepperProgress[i] <= -_config.zUnitsPerStep) {
-        backBuffer->blocks[i].step[i]    = true;
-        backBuffer->blocks[i].forward[i] = false;
+    for(int j = STEPPER_A; j <= STEPPER_C; j++) {
+      float delta = heights[j] - _stepperPosition[j];
+      if(fabs(_stepperProgress[j] + delta) >= (_config.zUnitsPerStep * 2)) {
+        printf("ERROR: Speed too fast for stepper %i (will lag behind)\n", i);
+      }
+      _stepperProgress[j] += delta;
+      _stepperPosition[j] = heights[j];
+      if       (_stepperProgress[j] >=  _config.zUnitsPerStep) {
+        backBuffer->blocks[i].step[j]    = true;
+        backBuffer->blocks[i].forward[j] = true;
+        _stepperProgress[j] -= _config.zUnitsPerStep;
+        printf("\t\tStepper %i moves forward\n", j);
+      } else if(_stepperProgress[j] <= -_config.zUnitsPerStep) {
+        backBuffer->blocks[i].step[j]    = true;
+        backBuffer->blocks[i].forward[j] = false;
+        _stepperProgress[j] += _config.zUnitsPerStep;
+        printf("\t\tStepper %i moves backward\n", j);
       } else {
-        backBuffer->blocks[i].step[i]    = false;
+        backBuffer->blocks[i].step[j]    = false;
       }
     }
     blockIndex++;
@@ -93,16 +114,33 @@ bool PrintPlanner::queueMove(const Vec3& target) {
   return true;
 }
 
+BlockBuffer* PrintPlanner::getFrontBuffer() {
+  printf("Fetching front buffer at %i\n", _frontBufferIndex);
+  return &_buffers[_frontBufferIndex];
+}
+
+void PrintPlanner::releaseFrontBuffer() {
+  printf("Releasing front buffer %i for production\n", _frontBufferIndex);
+  BlockBuffer* frontBuffer = &_buffers[_frontBufferIndex];
+  frontBuffer->done = true;
+  _frontBufferIndex++;
+  if(_frontBufferIndex >= RING_BUFFER_LENGTH) { _frontBufferIndex -= RING_BUFFER_LENGTH; }
+}
+
 void PrintPlanner::commitBackBuffer() {
-  BlockBuffer* backBuffer = &buffers[backBufferIndex];
+  printf("Committing back buffer %i for consumption\n", _backBufferIndex);
+  BlockBuffer* backBuffer = &_buffers[_backBufferIndex];
   backBuffer->ready = true;
-  backBufferIndex++;
+  _backBufferIndex++;
+  if(_backBufferIndex >= RING_BUFFER_LENGTH) { _backBufferIndex -= RING_BUFFER_LENGTH; }
 }
 
 BlockBuffer* PrintPlanner::getBackBuffer() {
-  BlockBuffer* ret = &buffers[backBufferIndex];
+  BlockBuffer* ret = &_buffers[_backBufferIndex];
   while(!ret->done) {
     // Wait for the interrupt to finish consuming this buffer
+    printf("Print planner waiting for buffer %i to be finished\n", _backBufferIndex);
+    sleep(1);
   }
   ret->ready = false;
   ret->done = false;

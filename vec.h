@@ -19,11 +19,9 @@ public:
   float mag() const { return sqrt(x*x + y*y); }
   float magSquared() const { return x*x + y*y; }
 
-  Vec2 normalize() {
+  Vec2 normalized() {
     float m = mag();
-    x = x / m;
-    y = y / m;
-    return *this;
+    return Vec2(x/m, y/m);
   }
 };
 
@@ -42,12 +40,9 @@ public:
   float mag() const { return sqrt(x*x + y*y + z*z); }
   float magSquared() const { return x*x + y*y + z*z; }
 
-  Vec3 normalize() {
+  Vec3 normalized() {
     float m = mag();
-    x = x / m;
-    y = y / m;
-    z = z / m;
-    return *this;
+    return Vec3(x/m, y/m, z/m);
   }
 };
 

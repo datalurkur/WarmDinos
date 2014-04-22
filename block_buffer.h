@@ -4,7 +4,7 @@
 #include "instruction_block.h"
 
 // This...seems like a good number
-#define BLOCK_BUFFER_LENGTH 2048
+#define BLOCK_BUFFER_LENGTH 4096
 
 struct BlockBuffer {
   // Set when the buffer is ready for consumption
