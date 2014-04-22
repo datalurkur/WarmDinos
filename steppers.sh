@@ -1,0 +1,1 @@
+gnuplot -e "set term png; set output \"test.png\"; plot \"motors.dat\" using 1:2 title 'A' with points, \"motors.dat\" using 1:3 title 'B' with points, \"motors.dat\" using 1:4 title 'C' with points, \"motors.dat\" using 1:5 title 'x' with points, \"motors.dat\" using 1:6 title 'y' with points, \"motors.dat\" using 1:7 title 'z' with points"
