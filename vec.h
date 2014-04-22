@@ -38,6 +38,17 @@ public:
   Vec3 operator-(const Vec3& other) const { return Vec3(x - other.x, y - other.y, z - other.z); }
   Vec3 operator*(float scalar) const { return Vec3(x * scalar, y * scalar, z * scalar); }
   Vec3& operator=(const Vec3& other) { x = other.x; y = other.y; z = other.z; return *this; }
+
+  float mag() const { return sqrt(x*x + y*y + z*z); }
+  float magSquared() const { return x*x + y*y + z*z; }
+
+  Vec3 normalize() {
+    float m = mag();
+    x = x / m;
+    y = y / m;
+    z = z / m;
+    return *this;
+  }
 };
 
 #endif

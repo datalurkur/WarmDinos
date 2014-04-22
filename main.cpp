@@ -1,5 +1,6 @@
 #include "print_solver.h"
 #include "printer_config.h"
+#include "print_planner.h"
 #include <stdio.h>
 #include <fstream>
 
@@ -16,18 +17,18 @@ void testSolver() {
   fileStream.open("motors.dat");
   
   int steps = 100;
-  float hA, hB, hC;
+  float heights[NUMBER_OF_AXES];
   for(int c = 0; c < steps; c++) {
     float t = (float)c / steps;
     Vec3 target = p0 + ((p1 - p0) * t);
     printf("Solving for point at [%f,%f]...\n", target.x, target.y);
-    if(!solver.getHeightsAt(target, hA, hB, hC)) {
+    if(!solver.getHeightsAt(target, heights)) {
       printf("\tFAILED\n");
       break;
     } else {
-      printf("\tFound heights %f / %f / %f\n", hA, hB, hC);
+      printf("\tFound heights %f / %f / %f\n", heights[0], heights[1], heights[2]);
     }
-    fileStream << t << " " << hA << " " << hB << " " << hC << " " << target.x << " " << target.y << " " << target.z << "\n";
+    fileStream << t << " " << heights[0] << " " << heights[1] << " " << heights[2] << " " << target.x << " " << target.y << " " << target.z << "\n";
   }
   fileStream.close();
 }

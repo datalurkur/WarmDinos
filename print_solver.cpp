@@ -9,40 +9,30 @@ PrintSolver::PrintSolver(const PrinterConfig& config):
   float halfSide = _sideLength / 2;
   float height = halfSide * sqrt(3.0f);
 
-  _anchorA = Vec2(0,0);
-  _anchorB = Vec2(_sideLength, 0);
-  _anchorC = Vec2(halfSide, height);
+  _anchors[STEPPER_A] = Vec2(0,0);
+  _anchors[STEPPER_B] = Vec2(_sideLength, 0);
+  _anchors[STEPPER_C] = Vec2(halfSide, height);
 
   Vec2 center(halfSide, height / 2.0f);
-  _offsetA = (_anchorA - center).normalize() * _rodOffset;
-  _offsetB = (_anchorB - center).normalize() * _rodOffset;
-  _offsetC = (_anchorC - center).normalize() * _rodOffset;
+  for(int i = STEPPER_A; i < STEPPER_C; i++) {
+    _offsets[i] = (_anchors[i] - center).normalize() * _rodOffset;
+  }
 }
 
-bool PrintSolver::getHeightsAt(const Vec3& target, float& aHeight, float& bHeight, float& cHeight) {
+bool PrintSolver::getHeightsAt(const Vec3& target, float heights[NUMBER_OF_AXES]) {
   float zOffset = target.z;
   Vec2 t(target.x, target.y);
 
-  Vec2 tA = t + _offsetA - _anchorA,
-       tB = t + _offsetB - _anchorB,
-       tC = t + _offsetC - _anchorC;
-
-  float tAS = tA.magSquared(),
-        tBS = tB.magSquared(),
-        tCS = tC.magSquared();
-
-  float aHeightSquared = _lSquared - tAS,
-        bHeightSquared = _lSquared - tBS,
-        cHeightSquared = _lSquared - tCS;
-
-  if(aHeightSquared < 0 || bHeightSquared < 0 || cHeightSquared < 0) {
-    printf("Height not computable (from results %f, %f, %f)\n", aHeightSquared, bHeightSquared, cHeightSquared);
-    return false;
+  for(int i = STEPPER_A; i < STEPPER_C; i++) {
+    Vec2 target = t + _offsets[i] - _anchors[i];
+    float mag = target.magSquared();
+    float heightSquared = _lSquared - mag;
+    if(heightSquared < 0) {
+      printf("Height not computable\n");
+      return false;
+    }
+    heights[i] = sqrt(heightSquared) + zOffset;
   }
-
-  aHeight = sqrt(aHeightSquared) + zOffset;
-  bHeight = sqrt(bHeightSquared) + zOffset;
-  cHeight = sqrt(cHeightSquared) + zOffset;
 
   return true;
 }

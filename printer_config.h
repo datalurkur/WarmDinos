@@ -13,6 +13,8 @@ struct PositionProfile {
   void debug() { printf("%f acc | %f vel | %f dist | %f time\n", a, v, d, t); }
 };
 
+#define MOVEMENT_PROFILE_MAX 3
+
 struct MovementProfile {
   float minimumDistance;
   float maxVelocity;
@@ -56,7 +58,7 @@ struct PrinterConfig {
   // 0 - maximum velocity
   // 1 - half velocity
   // 2 - quarter velocity
-  MovementProfile movementProfiles[3];
+  MovementProfile movementProfiles[MOVEMENT_PROFILE_MAX];
 
   // Functions
   void setup();

@@ -2,14 +2,16 @@
 #include <stdio.h>
 
 void PrinterConfig::setup() {
-    jerkPerTick = jerk * interruptInterval;
-    maxAccelerationPerTick = maxAcceleration * interruptInterval;
-    maxVelocityPerTick = maxVelocity * interruptInterval;
-    printf("Per-tick jerk %f, acceleration %f, and velocity %f\n", jerkPerTick, maxAccelerationPerTick, maxVelocityPerTick);
+  jerkPerTick = jerk * interruptInterval;
+  maxAccelerationPerTick = maxAcceleration * interruptInterval;
+  maxVelocityPerTick = maxVelocity * interruptInterval;
+  printf("Per-tick jerk %f, acceleration %f, and velocity %f\n", jerkPerTick, maxAccelerationPerTick, maxVelocityPerTick);
 
-    computeMoveProfile(1.00f, movementProfiles[0]);
-    computeMoveProfile(0.50f, movementProfiles[1]);
-    computeMoveProfile(0.25f, movementProfiles[2]);
+  float scale = 1.0f;
+  for(int i = 0; i < MOVEMENT_PROFILE_MAX; i++) {
+    computeMoveProfile(scale, movementProfiles[i]);
+    scale *= 0.5f;
+  }
 }
 
 void PrinterConfig::computeMoveProfile(float scale, MovementProfile& profile) {

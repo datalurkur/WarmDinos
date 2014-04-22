@@ -16,7 +16,7 @@ struct BlockBuffer {
   // Used to limit the number of blocks consumed if the buffer is not full
   int numberOfBlocks;
 
-  InstructionBlock buffer[BLOCK_BUFFER_LENGTH];
+  InstructionBlock blocks[BLOCK_BUFFER_LENGTH];
 };
 
 #endif
